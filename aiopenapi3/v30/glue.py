@@ -46,7 +46,14 @@ class Request(RequestBase):
     @property
     def data(self) -> SchemaBase:
         """the body Schema"""
-        return self.operation.requestBody.content["application/json"].schema_
+        if "application/json" in self.operation.requestBody.content:
+            return self.operation.requestBody.content["application/json"].schema_
+        elif (ct := "multipart/form-data") in self.operation.requestBody.content:
+            return self.operation.requestBody.content[ct].schema_
+        elif (ct := "application/x-www-form-urlencoded") in self.operation.requestBody.content:
+            return self.operation.requestBody.content[ct].schema_
+        else:
+            raise NotImplementedError(self.operation.requestBody.content)
 
     @property
     def parameters(self) -> List[ParameterBase]:
@@ -432,7 +439,7 @@ class Request(RequestBase):
             ).unmarshalled
             return rheaders, data
         else:
-            raise NotImplementedError()
+            return rheaders, ctx.received
 
 
 class AsyncRequest(Request, AsyncRequestBase):
